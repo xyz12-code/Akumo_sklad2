@@ -2,169 +2,81 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skladová evidence | Akumo</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            padding: 20px;
-            margin: 0;
-            background: linear-gradient(to bottom right, #f7f7f7, #dfe9f3);
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 500px;
-            margin: auto;
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .logo {
-            text-align: center;
-            margin-bottom: 20px;
-            font-weight: bold;
-            font-size: 20px;
-            color: #222;
-        }
-        input, button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            font-size: 16px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-        }
-        button {
-            background-color: #0b79d0;
-            color: white;
-            border: none;
-        }
-        #output, #history {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f3f3f3;
-            border-radius: 5px;
-            min-height: 30px;
-        }
-        .history-item {
-            cursor: pointer;
-            color: #0b79d0;
-            margin-bottom: 5px;
-            display: inline-block;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Akumo Sklad - Hledání</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #eef1f5; }
+    #reader { width: 100%%; max-width: 400px; margin: auto; }
+    .box { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .logo { text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 24px; }
+    input, button { width: 100%%; padding: 12px; margin-top: 10px; font-size: 16px; border-radius: 6px; border: 1px solid #ccc; }
+    button.scan { background-color: #0b79d0; color: white; border: none; }
+    .vysledek { margin-top: 20px; padding: 15px; background: #fff; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">AKUMO SKLAD</div>
-        <input type="text" id="query" placeholder="Zadej název položky...">
-        <button onclick="hledat()">Hledat</button>
-        <div id="output"></div>
-        <div id="history"><strong>Naposledy hledané:</strong><br></div>
-    </div>
+  <div class="box">
+    <div class="logo">AKUMO SKLAD</div>
+    <input type="text" id="query" placeholder="Zadej název položky..." />
+    <button onclick="hledat()">🔍 Hledat</button>
+    <button class="scan" onclick="startScanner()">📷 Naskenovat čárový kód</button>
+    <div id="reader" style="display:none;"></div>
+    <div id="vysledek" class="vysledek"></div>
+  </div>
 
-    <script>
-        const sklad = {
-"Hlavové složení (sada - haibike)": "Sloupec A, řada 1",
-"Hlavové složení (podložky)": "Sloupec B, řada 1",
-"Ložiska (Yamaha)": "Sloupec C, řada 1",
-"Patky (rychloupinaky)": "Sloupec D, řada 1",
-"Hlavové složení (sada - kompletní)": "Sloupec A, řada 2",
-"Hlavové složení (podložky)": "Sloupec B, řada 2",
-"Ložiska (Bosch 4. Gen.)": "Sloupec C, řada 2",
-"Patky (Rychloupinak)": "Sloupec D, řada 2",
-"Hlavové složení (sada - nekompletní)": "Sloupec A, řada 3",
-"Věnečky kuličky": "Sloupec B, řada 3",
-"Ložiska (Bosch 2. 3. Gen.)": "Sloupec C, řada 3",
-"Patky (pevná osa)": "Sloupec D, řada 3",
-"Hlavové složení (misky, kužely)": "Sloupec A, řada 4",
-"Náboje (přední)": "Sloupec B, řada 4",
-"Ložiska / ložiska bafang": "Sloupec C, řada 4",
-"Patky (pevná osa)": "Sloupec D, řada 4",
-"Hlavové složení (ježek, víčko)": "Sloupec A, řada 5",
-"Náboje (zadní)": "Sloupec B, řada 5",
-"Spider": "Sloupec C, řada 5",
-"Pastorky kazety (Shimano 10. 11. Sp. )": "Sloupec D, řada 5",
-"Náboje (opravná sada)": "Sloupec A, řada 6",
-"Pevná osa (přední)": "Sloupec B, řada 6",
-"Kliky Jis (samostatné)": "Sloupec C, řada 6",
-"Pastorky kazety (Shimano 12. Sp.)": "Sloupec D, řada 6",
-"Náboje (ořechy)": "Sloupec A, řada 7",
-"Pevná osa (zadní)": "Sloupec B, řada 7",
-"Kliky isis (samostatné)": "Sloupec C, řada 7",
-"Pastorky kazety (sram 12. Sp.)": "Sloupec D, řada 7",
-"Vidlice (příslušenství)": "Sloupec A, řada 8",
-"Rychloupinak (přední)": "Sloupec B, řada 8",
-"Pastorky motoru (14z, 15z)": "Sloupec D, řada 8",
-"Vidlice (páčky)": "Sloupec A, řada 9",
-"Rychloupinak (zadní)": "Sloupec B, řada 9",
-"Pastorky motoru (Miranda 15z, 16z)": "Sloupec D, řada 9",
-"Teleskopické páčky": "Sloupec A, řada 10",
-"Středové složení": "Sloupec B, řada 10",
-"Pastorky motoru (16z)": "Sloupec D, řada 10",
-"Průchodky rámem": "Sloupec A, řada 11",
-"Vodítka řetězu": "Sloupec B, řada 11",
-"Pastorky motoru (17z, 18z)": "Sloupec D, řada 11",
-"Bowdeny (příslušenství)": "Sloupec A, řada 12",
-"Páska do ráfku": "Sloupec B, řada 12",
-"Převodník (ochrane kryty)": "Sloupec D, řada 12",
-"Kladky přehazovačky": "Sloupec A, řada 13",
-"Bezdušová páska": "Sloupec B, řada 13",
-"Převodník set (…)": "Sloupec D, řada 13",
-"Sram axs (příslušenství)": "Sloupec A, řada 14",
-"Sedlovky (příslušenství)": "Sloupec B, řada 14",
-"Převodník ( šrouby, matice)": "Sloupec A, řada 15",
-"Logo motoru (nálepka)": "Sloupec A, řada 16",
-"Osa náboje (kónusy, díl)": "Sloupec A, řada 17",
-"Bezduše (příslušenství)": "Sloupec A, řada 18",
-"Zaslepka do řídítek": "Sloupec A, řada 19",
-        };
+  <script>
+    const databaze = {
+      "710845843969": {"nazev": "Pastorek kazety 11-1", "pozice": "Sloupec D, řada 8"},
+"4550170904791": {"nazev": "Pastorek Shimano 12z", "pozice": "Sloupec D, řada 7"}
+    };
 
-        function normalize(str) {
-            return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    function normalize(str) {
+      return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    }
+
+    function hledat() {
+      const dotaz = normalize(document.getElementById("query").value.trim());
+      if (!dotaz) return;
+      let found = false;
+      for (const [klic, data] of Object.entries(databaze)) {
+        if (normalize(data.nazev).includes(dotaz)) {
+          document.getElementById("vysledek").innerHTML =
+            `<strong>${data.nazev}</strong><br>Umístění: ${data.pozice}`;
+          found = true;
+          break;
         }
+      }
+      if (!found) {
+        document.getElementById("vysledek").innerHTML = "Položka nenalezena.";
+      }
+    }
 
-        function ulozitHistorii(dotaz) {
-            let historie = JSON.parse(localStorage.getItem("skladHistorie")) || [];
-            historie = historie.filter(item => item !== dotaz);
-            historie.unshift(dotaz);
-            if (historie.length > 10) historie = historie.slice(0, 10);
-            localStorage.setItem("skladHistorie", JSON.stringify(historie));
-            zobrazHistorii();
-        }
-
-        function zobrazHistorii() {
-            const historie = JSON.parse(localStorage.getItem("skladHistorie")) || [];
-            const historyDiv = document.getElementById("history");
-            if (historie.length === 0) {
-                historyDiv.innerHTML = "";
-                return;
-            }
-            historyDiv.innerHTML = "<strong>Naposledy hledané:</strong><br>" + historie.map(h => 
-                `<span class="history-item" onclick="vlozitZHistorie('${h}')">${h}</span>`).join(", ");
-        }
-
-        function vlozitZHistorie(text) {
-            document.getElementById("query").value = text;
-            hledat();
-        }
-
-        function hledat() {
-            const dotaz = normalize(document.getElementById("query").value.trim());
-            if (!dotaz) return;
-            ulozitHistorii(dotaz);
-            let vysledky = "";
-            for (const [klic, hodnota] of Object.entries(sklad)) {
-                if (normalize(klic).includes(dotaz)) {
-                    vysledky += `<strong>${klic}</strong><br>Pozice: ${hodnota}<br><br>`;
-                }
-            }
-            document.getElementById("output").innerHTML = vysledky || "Položka nenalezena.";
-        }
-
-        zobrazHistorii();
-    </script>
+    function startScanner() {
+      document.getElementById('reader').style.display = "block";
+      const html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: 250
+        },
+        (decodedText, decodedResult) => {
+          html5QrCode.stop();
+          document.getElementById("reader").style.display = "none";
+          const data = databaze[decodedText];
+          if (data) {
+            document.getElementById("vysledek").innerHTML =
+              `<strong>${data.nazev}</strong><br>Umístění: ${data.pozice}`;
+          } else {
+            document.getElementById("vysledek").innerHTML =
+              `Čárový kód <strong>${decodedText}</strong> nebyl nalezen.`;
+          }
+        },
+        (errorMessage) => {}
+      );
+    }
+  </script>
 </body>
 </html>
