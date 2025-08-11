@@ -16,7 +16,7 @@
     </div>
     <div id="history"></div>
     <div id="vysledek" class="vysledek"></div>
-    <div class="footer muted">Tip: hledej bez diakritiky (např. „hlavove slozeni“).</div>
+    <div class="footer muted">Tip: hledej bez diakritiky nebo zkratky(např. „hlavove slozeni, hlav“).</div>
   </div>
 
   <script>
@@ -67,7 +67,7 @@
       let vysledky = "";
       for (const [nazev, pozice] of Object.entries(databaze)) {
         if (normalize(nazev).includes(dotaz)) {
-          vysledky += `<strong>${nazev}</strong><br>Umístění: ${pozice}<br><br>`;
+          vysledky += `<strong>${nazev}</strong> ${pozice}<br><br>`;
         }
       }
       document.getElementById("vysledek").innerHTML = vysledky || "Hmmm, nic tu není – jdi za Jakubem";
