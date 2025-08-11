@@ -5,9 +5,44 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Akumo Sklad</title>
-<style>#nadpisA { font-weight: bold; color: #2e7d32; margin-bottom: 10px; }</style>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="box">
+    <div class="logo">AKUMO SKLAD</div>
+    <div class="controls">
+      <input type="text" id="query" placeholder="Zadej název položky..." />
+      <button class="primary" onclick="hledat()">🔍</button>
+    </div>
+    <div id="history"></div>
+    <div id="vysledek" class="vysledek"></div>
+    <div class="footer muted">Tip: hledej bez diakritiky (např. „hlavove slozeni“).</div>
+  </div>
+
+  <script>
+    let data1 = {};
+    let data2 = {};
+    let databaze = {};
+
+    function normalize(str) {
+      return (str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    }
+
+    function mergeData() {
+      databaze = Object.assign({}, data1, data2);
+    }
+
+    async function loadData() {
+      const r1 = await fetch('data_table1.json');
+      data1 = await r1.json();
+      const r2 = await fetch('data_table2.json');
+      data2 = await r2.json();
+      mergeData();
+      zobrazHistorii();
+    }
+
     function ulozitHistorii(dotaz) {
+      if (!dotaz) return;
       let historie = JSON.parse(localStorage.getItem("skladHistorie")) || [];
       historie = historie.filter(item => item !== dotaz);
       historie.unshift(dotaz);
@@ -18,233 +53,11 @@
 
     function zobrazHistorii() {
       const historie = JSON.parse(localStorage.getItem("skladHistorie")) || [];
-      const historyDiv = document.getElementById("history");
-      if (historie.length === 0) {
-        historyDiv.innerHTML = "";
-        return;
-      }
-      historyDiv.innerHTML = "<strong>Poslední hledané:</strong><br>" + historie.map(h => 
-        `<span style='cursor:pointer;color:#2e7d32;' onclick='document.getElementById("query").value=h;hledat();'>${h}</span>`).join(", ");
-    }
-    window.onload = zobrazHistorii;
-
-</script>
-  <style>
-    body {{ font-family: sans-serif; padding: 20px; background: #eef1f5; }}
-    .box { background: #f5f5f5; border: 1px solid #ccc;{ max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
-    .logo {{ text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 24px; }}
-    input, button {{ width: 100%%; padding: 12px; margin-top: 10px; font-size: 16px; border-radius: 6px; border: 1px solid #ccc; }}
-    button.scan {{ background-color: #2e7d32; color: white; border: none; }}
-    #reader {{ width: 100%%; max-width: 400px; margin: auto; display: none; }}
-    .vysledek {{ margin-top: 20px; padding: 15px; background: #fff; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }}
-  </style>
-</head>
-<body>
-  <div class="box">
-    <div class="logo">AKUMO SKLAD</div>
-    <input type="text" id="query" placeholder="Zadej název položky..." />
-    <button onclick="hledat()">🔍 Hledat</button>
-    <button class="scan" onclick="startScanner()">📷 Naskenovat čárový kód</button>
-    <div id="reader"></div>
-    
-    <div id="history" style="margin-top: 10px; font-size: 14px; color: #333;"></div>
-<div id="vysledek" class="vysledek"></div>
-  </div>
-
-  <script>
-    const nazevDatabaze = {
-"Hlavové složení (sada - haibike)": "Sloupec A, řada 1",
-"Hlavové složení (podložky)": "Sloupec B, řada 1",
-"Ložiska (Yamaha)": "Sloupec C, řada 1",
-"Patky (rychloupinaky)": "Sloupec D, řada 1",
-"Převodník (34z, 36z)": "Sloupec E, řada 1",
-"Niple": "Sloupec F, řada 1",
-"Zámky Bosch (integrované)": "Sloupec G, řada 1 – elektro",
-"Hlavové složení (sada - kompletní)": "Sloupec A, řada 2",
-"Hlavové složení (podložky)": "Sloupec B, řada 2",
-"Ložiska (Bosch 4. Gen.)": "Sloupec C, řada 2 – elektro",
-"Patky (Rychloupinak)": "Sloupec D, řada 2",
-"Převodník (38z)": "Sloupec E, řada 2",
-"Dráty 2mm 80-250mm": "Sloupec F, řada 2",
-"Patky baterie (Bosch 5.gen)": "Sloupec G, řada 2 – elektro",
-"Hlavové složení (sada - nekompletní)": "Sloupec A, řada 3",
-"Věnečky kuličky": "Sloupec B, řada 3",
-"Ložiska (Bosch 2. 3. Gen.)": "Sloupec C, řada 3 – elektro",
-"Patky (pevná osa)": "Sloupec D, řada 3",
-"Převodník (38z - Bosch)": "Sloupec E, řada 3 – elektro",
-"Dráty 2mm 250-280mm": "Sloupec F, řada 3",
-"Zámky Bosch (integrované_2)": "Sloupec G, řada 3 – elektro",
-"Hlavové složení (misky, kužely)": "Sloupec A, řada 4",
-"Náboje (přední)": "Sloupec B, řada 4",
-"Ložiska / ložiska bafang": "Sloupec C, řada 4 – elektro",
-"Patky (pevná osa)": "Sloupec D, řada 4",
-"Převodník (38z - bafang)": "Sloupec E, řada 4 – elektro",
-"Dráty 2mm 280-290mm": "Sloupec F, řada 4",
-"Zámky Bosch (rámové, nosičové)": "Sloupec G, řada 4 – elektro",
-"Hlavové složení (ježek, víčko)": "Sloupec A, řada 5",
-"Náboje (zadní)": "Sloupec B, řada 5",
-"Spider": "Sloupec C, řada 5",
-"Pastorky kazety (Shimano 10. 11. Sp. )": "Sloupec D, řada 5",
-"Převodník (38z - sram 104mm)": "Sloupec E, řada 5",
-"Dráty 2mm 290-310mm": "Sloupec F, řada 5",
-"Patky baterie (Bosch)": "Sloupec G, řada 5 – elektro",
-"Náboje (opravná sada)": "Sloupec A, řada 6",
-"Pevná osa (přední)": "Sloupec B, řada 6",
-"Kliky Jis (samostatné)": "Sloupec C, řada 6 – elektro",
-"Pastorky kazety (Shimano 12. Sp.)": "Sloupec D, řada 6",
-"Převodník (38z - sram [bosch])": "Sloupec E, řada 6 – elektro",
-"Dráty 2,35mm 120-190mm": "Sloupec F, řada 6",
-"Držáky zámku Bosch (integrované , rámové)": "Sloupec G, řada 6 – elektro",
-"Náboje (ořechy)": "Sloupec A, řada 7",
-"Pevná osa (zadní)": "Sloupec B, řada 7",
-"Kliky isis (samostatné)": "Sloupec C, řada 7 – elektro",
-"Pastorky kazety (sram 12. Sp.)": "Sloupec D, řada 7",
-"Převodník (38z - Yamaha)": "Sloupec E, řada 7",
-"Dráty 2,35mm 200-230mm": "Sloupec F, řada 7",
-"Zámky Yamaha (integrované)": "Sloupec G, řada 7",
-"Vidlice (příslušenství)": "Sloupec A, řada 8",
-"Rychloupinak (přední)": "Sloupec B, řada 8",
-"Pastorky motoru (14z, 15z)": "Sloupec D, řada 8 – elektro",
-"Převodník (42z)": "Sloupec E, řada 8",
-"Dráty 2,35mm 230-240mm": "Sloupec F, řada 8",
-"Zámky Yamaha (rámové)": "Sloupec G, řada 8",
-"Vidlice (páčky)": "Sloupec A, řada 9",
-"Rychloupinak (zadní)": "Sloupec B, řada 9",
-"Pastorky motoru (Miranda 15z, 16z)": "Sloupec D, řada 9 – elektro",
-"Převodník (44z - bafang)": "Sloupec E, řada 9 – elektro",
-"Držáky zámku, patky zámku Yamaha (rámové)": "Sloupec G, řada 9",
-"Teleskopické páčky": "Sloupec A, řada 10",
-"Středové složení": "Sloupec B, řada 10",
-"Pastorky motoru (16z)": "Sloupec D, řada 10 – elektro",
-"Převodník (44z)": "Sloupec E, řada 10",
-"Zámky Crussis": "Sloupec G, řada 10",
-"Průchodky rámem": "Sloupec A, řada 11",
-"Vodítka řetězu": "Sloupec B, řada 11",
-"Pastorky motoru (17z, 18z)": "Sloupec D, řada 11 – elektro",
-"Převodník (46z)": "Sloupec E, řada 11",
-"Zámky LF, Apache": "Sloupec G, řada 11",
-"Bowdeny (příslušenství)": "Sloupec A, řada 12",
-"Páska do ráfku": "Sloupec B, řada 12",
-"Převodník (ochrane kryty)": "Sloupec D, řada 12",
-"Převodník (48z)": "Sloupec E, řada 12",
-"Zamky ghost, zámek podkova": "Sloupec G, řada 12",
-"Kladky přehazovačky": "Sloupec A, řada 13",
-"Bezdušová páska": "Sloupec B, řada 13",
-"Převodník set (…)": "Sloupec D, řada 13",
-"Převodník (48z - fsa)": "Sloupec E, řada 13",
-"Držáky zámku baterie (pells, lf)": "Sloupec G, řada 13",
-"Sram axs (příslušenství)": "Sloupec A, řada 14",
-"Sedlovky (příslušenství)": "Sloupec B, řada 14",
-"Držáky zámku baterie( Crussis)": "Sloupec G, řada 14",
-"Převodník ( šrouby, matice)": "Sloupec A, řada 15",
-"Držáky zámku baterie (Apache)": "Sloupec G, řada 15",
-"Logo motoru (nálepka)": "Sloupec A, řada 16 – elektro",
-"Osa náboje (kónusy, díl)": "Sloupec A, řada 17",
-"Bezduše (příslušenství)": "Sloupec A, řada 18",
-"Zaslepka do řídítek": "Sloupec A, řada 19",
-"Čárový kód": "Sloupec A, řada 23",
-"Název položky": "Sloupec B, řada 23",
-"Umístění": "Sloupec C, řada 23",
-"710845843969": "Sloupec A, řada 24",
-"Pastorek kazety 11-1": "Sloupec B, řada 24",
-"Sloupec D, řada 8": "Sloupec C, řada 24",
-"4550170904791": "Sloupec A, řada 25",
-"Pastorek Shimano 12z": "Sloupec B, řada 25",
-"Sloupec D, řada 7": "Sloupec C, řada 25",
-"U Romana": "Sloupec A, řada 29",
-"Sloupec A - elektro": "Sloupec A, řada 30",
-"Sloupec B - elektro": "Sloupec B, řada 30",
-"Sloupec C - elektro": "Sloupec C, řada 30",
-"Sloupec D - elektro": "Sloupec D, řada 30",
-"Sloupec E - elektro": "Sloupec E, řada 30",
-"Sloupec F - elektro": "Sloupec F, řada 30",
-"Sloupec G - elektro": "Sloupec G, řada 30",
-"Brzdové destičky (magura)": "Sloupec A, řada 31 – elektro",
-"Brzdové hadice": "Sloupec B, řada 31",
-"Displeje bafang (nábojový motor)": "Sloupec C, řada 31 – elektro",
-"Bosch kabely (rámová aku Classic)": "Sloupec D, řada 31 – elektro",
-"Bosch kabely intube (smart systém)": "Sloupec E, řada 31 – elektro",
-"Nekompletní motory bafang": "Sloupec F, řada 31 – elektro",
-"Viko motoru bafang m420": "Sloupec G, řada 31 – elektro",
-"Brzdič (integrovaný adaptér)": "Sloupec A, řada 32",
-"Vzpěry na nosič (zahnuté)": "Sloupec B, řada 32",
-"Displeje bafang (středový motor m400)": "Sloupec C, řada 32 – elektro",
-"Bosch kabely (intube classic)": "Sloupec D, řada 32 – elektro",
-"Krytka nabíjecího konektoru Bosch": "Sloupec E, řada 32 – elektro",
-"Magnety": "Sloupec F, řada 32",
-"Kliky isis (acid) 160mm": "Sloupec G, řada 32 – elektro",
-"Nábojový motor (spojovací materiál)": "Sloupec A, řada 33 – elektro",
-"Displej Yamaha (od roku 2017)": "Sloupec B, řada 33",
-"Displeje bafang (středový motor m500)": "Sloupec C, řada 33 – elektro",
-"Kabely pro světla (Bosch)": "Sloupec D, řada 33 – elektro",
-"Displej Yamaha do roku 2016": "Sloupec E, řada 33",
-"Převodovka motoru g020": "Sloupec F, řada 33 – elektro",
-"Kliky isis (acid) 165mm": "Sloupec G, řada 33 – elektro",
-"Nábojový motor (spojovací materiál)": "Sloupec A, řada 34 – elektro",
-"Světla (příslušenství)": "Sloupec B, řada 34",
-"Držáky displeje Yamaha (do roku 2016)": "Sloupec C, řada 34",
-"Yamaha (kabely)": "Sloupec D, řada 34",
-"Snímač rychlosti (bafang m400)": "Sloupec E, řada 34 – elektro",
-"Převodovka motoru g010": "Sloupec F, řada 34 – elektro",
-"Kliky isis (acid) 170mm": "Sloupec G, řada 34 – elektro",
-"Příslušenství k plastovým krytům (bafang)": "Sloupec A, řada 35 – elektro",
-"Řídící jednotka bafang m400 (can)": "Sloupec B, řada 35 – elektro",
-"Blatník (příslušenství)": "Sloupec C, řada 35",
-"Apache kabely (motorové, eb-bus)": "Sloupec D, řada 35 – elektro",
-"Snímač šlapání": "Sloupec E, řada 35",
-"Rotor m420, m400": "Sloupec F, řada 35 – elektro",
-"Kliky isis (acid) 175mm": "Sloupec G, řada 35 – elektro",
-"Páčka sedlové objímky": "Sloupec A, řada 36",
-"Řídící jednotka (nábojový pohon)": "Sloupec B, řada 36",
-"Bosch purion (bui215)": "Sloupec C, řada 36 – elektro",
-"Senzor šlapání středová osa": "Sloupec D, řada 36",
-"Snímač rychlosti Yamaha": "Sloupec E, řada 36",
-"Bosch propojovací kabely k displeji": "Sloupec F, řada 36 – elektro",
-"Kliky isis (haibike)": "Sloupec G, řada 36 – elektro",
-"Leštící pasta": "Sloupec A, řada 37",
-"Řídící jednotka (staré typy)": "Sloupec B, řada 37",
-"Bosch intuvia (bui255)": "Sloupec C, řada 37 – elektro",
-"Bosch (5. Gen)": "Sloupec D, řada 37 – elektro",
-"Snímač rychlosti Bosch": "Sloupec E, řada 37 – elektro",
-"Velké ozubené kolo m420": "Sloupec F, řada 37 – elektro",
-"Kliky isis ( různé značky )": "Sloupec G, řada 37 – elektro",
-"Tlačítko ovladače": "Sloupec A, řada 38",
-"Hrabák": "Sloupec B, řada 38",
-"Bosch kiox (bui330)": "Sloupec C, řada 38 – elektro",
-"Panasonic": "Sloupec D, řada 38 – elektro",
-"": "Sloupec E, řada 38",
-"Shimano steps, Di2": "Sloupec F, řada 38 – elektro",
-"Kliky jis (různé značky)": "Sloupec G, řada 38 – elektro",
-"Rohatka motoru (bafang)": "Sloupec A, řada 39 – elektro",
-"Řetězy mix": "Sloupec B, řada 39",
-"Bosch Connectmodule (4. Gen.)": "Sloupec C, řada 39 – elektro",
-"Cube (příslušenství )": "Sloupec D, řada 39",
-"Fazua": "Sloupec F, řada 39 – elektro",
-"Kliky panasonic": "Sloupec G, řada 39 – elektro",
-"Velké ozubené kolo s ložiskem(bafang)": "Sloupec A, řada 40 – elektro",
-"Brose (náhradní díly)": "Sloupec F, řada 40",
-"Kliky bafang (m400, m500)": "Sloupec G, řada 40 – elektro",
-"Malé ozubené kolo (bafang m500)": "Sloupec A, řada 41 – elektro",
-"Leader Fox (displeje)": "Sloupec F, řada 41 – elektro",
-"Kliky (příslušenství)": "Sloupec G, řada 41 – elektro",
-"Malé ozubené kolo (bafang m420)": "Sloupec A, řada 42 – elektro",
-"Řídící jednotka  bafang m400 (uart)": "Sloupec A, řada 43 – elektro",
-"Řídící jednotka bafang m500": "Sloupec A, řada 44 – elektro",
-"Řídící jednotka bafang m420": "Sloupec A, řada 45 – elektro",
-"Řídící jednotka (r7, konektory)": "Sloupec A, řada 46",
-"Teplovodiva destička (bafang m500)": "Sloupec A, řada 47 – elektro",
-"Těsnění motoru bafang m400": "Sloupec A, řada 48 – elektro",
-"Těsnění motoru bafang m300": "Sloupec A, řada 49 – elektro",
-"Haibike (díly)": "Sloupec A, řada 50",
-    };
-
-    const kodDatabaze = {
-"710845843969": {"nazev": "Pastorek kazety 11-1", "pozice": "Sloupec D, řada 8"},
-"4550170904791": {"nazev": "Pastorek Shimano 12z", "pozice": "Sloupec D, řada 7"}
-    };
-
-    function normalize(str) {
-      return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+      const el = document.getElementById("history");
+      if (historie.length === 0) { el.innerHTML = ""; return; }
+      el.innerHTML = "<strong>Poslední hledané:</strong><br>" + historie.map(h =>
+        `<span class='item' onclick='document.getElementById("query").value=${JSON.stringify(h)};hledat();'>${h}</span>`
+      ).join(", ");
     }
 
     function hledat() {
@@ -252,61 +65,15 @@
       ulozitHistorii(dotaz);
       if (!dotaz) return;
       let vysledky = "";
-      for (const [nazev, pozice] of Object.entries(nazevDatabaze)) {
+      for (const [nazev, pozice] of Object.entries(databaze)) {
         if (normalize(nazev).includes(dotaz)) {
           vysledky += `<strong>${nazev}</strong><br>Umístění: ${pozice}<br><br>`;
         }
       }
-      if (vysledky) {
-        document.getElementById("vysledek").innerHTML = vysledky;
-      } else {
-        document.getElementById("vysledek").innerHTML = "Hmmm, nic tu není – jdi za Jakubem";
-      }
+      document.getElementById("vysledek").innerHTML = vysledky || "Hmmm, nic tu není – jdi za Jakubem";
     }
 
-    function startScanner() {
-      document.getElementById('reader').style.display = "block";
-      const html5QrCode = new Html5Qrcode("reader");
-      html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        (decodedText, decodedResult) => {
-          html5QrCode.stop();
-          document.getElementById("reader").style.display = "none";
-          const data = kodDatabaze[decodedText];
-          if (data) {
-            document.getElementById("vysledek").innerHTML =
-              `<strong>${data.nazev}</strong><br>Umístění: ${data.pozice}`;
-          } else {
-            document.getElementById("vysledek").innerHTML =
-              `Čárový kód <strong>${decodedText}</strong> nebyl nalezen.`;
-          }
-        },
-        (errorMessage) => { }
-      );
-    }
-  
-    function ulozitHistorii(dotaz) {
-      let historie = JSON.parse(localStorage.getItem("skladHistorie")) || [];
-      historie = historie.filter(item => item !== dotaz);
-      historie.unshift(dotaz);
-      if (historie.length > 10) historie = historie.slice(0, 10);
-      localStorage.setItem("skladHistorie", JSON.stringify(historie));
-      zobrazHistorii();
-    }
-
-    function zobrazHistorii() {
-      const historie = JSON.parse(localStorage.getItem("skladHistorie")) || [];
-      const historyDiv = document.getElementById("history");
-      if (historie.length === 0) {
-        historyDiv.innerHTML = "";
-        return;
-      }
-      historyDiv.innerHTML = "<strong>Poslední hledané:</strong><br>" + historie.map(h => 
-        `<span style='cursor:pointer;color:#2e7d32;' onclick='document.getElementById("query").value=h;hledat();'>${h}</span>`).join(", ");
-    }
-    window.onload = zobrazHistorii;
-
-</script>
+    loadData();
+  </script>
 </body>
 </html>
