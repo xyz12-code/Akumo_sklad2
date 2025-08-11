@@ -16,12 +16,13 @@
     </div>
     <div id="history"></div>
     <div id="vysledek" class="vysledek"></div>
-    <div class="footer muted">Tip: hledej bez diakritiky nebo zkratky(např. „hlavove slozeni, hlav“).</div>
+    <div class="footer muted">Tip: hledej bez diakritiky (např. „hlavove slozeni“). Vyhledává se ve <strong>všech 3 tabulkách</strong>.</div>
   </div>
 
   <script>
     let data1 = {};
     let data2 = {};
+    let data3 = {};
     let databaze = {};
 
     function normalize(str) {
@@ -29,7 +30,7 @@
     }
 
     function mergeData() {
-      databaze = Object.assign({}, data1, data2);
+      databaze = Object.assign({}, data1, data2, data3);
     }
 
     async function loadData() {
@@ -37,6 +38,8 @@
       data1 = await r1.json();
       const r2 = await fetch('data_table2.json');
       data2 = await r2.json();
+      const r3 = await fetch('data_table3.json');
+      data3 = await r3.json();
       mergeData();
       zobrazHistorii();
     }
@@ -67,7 +70,8 @@
       let vysledky = "";
       for (const [nazev, pozice] of Object.entries(databaze)) {
         if (normalize(nazev).includes(dotaz)) {
-          vysledky += `<strong>${nazev}</strong> ${pozice}<br><br>`;
+          // pozice už obsahuje plný text "Umístění - ...: Sloupec X, řádek Y"
+          vysledky += `<strong>${nazev}</strong><br>${pozice}<br><br>`;
         }
       }
       document.getElementById("vysledek").innerHTML = vysledky || "Hmmm, nic tu není – jdi za Jakubem";
