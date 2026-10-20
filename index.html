@@ -1,82 +1,212 @@
-
 <!DOCTYPE html>
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Akumo Sklad</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="box">
-    <div class="logo">AKUMO SKLAD</div>
-    <div class="controls">
-      <input type="text" id="query" placeholder="Zadej název položky..." />
-      <button class="primary" onclick="hledat()">🔍</button>
-    </div>
-    <div id="history"></div>
-    <div id="vysledek" class="vysledek"></div>
-    <div class="footer muted">Tip: hledej bez diakritiky nebo jako zkratku (např. „hlavove slozeni, hlav“). </div>
-  </div>
+  <main class="box">
+    <h1 class="logo">AKUMO SKLAD</h1>
+    <form id="search-form" role="search">
+      <label for="query">Najít ve skladu</label>
+      <div class="controls">
+        <input type="search" id="query" placeholder="Název, zkratka nebo umístění…" enterkeyhint="search" autocomplete="off" aria-describedby="search-tip" />
+        <button id="search-button" class="primary" type="submit" disabled>Hledat</button>
+      </div>
+    </form>
+    <p id="load-status" role="status" aria-live="polite">Načítám skladová data…</p>
+    <button id="retry" type="button" hidden>Zkusit načíst znovu</button>
+    <div id="history" aria-label="Historie hledání"></div>
+    <p id="result-status" role="status" aria-live="polite"></p>
+    <div id="vysledek" class="vysledek" aria-busy="true"></div>
+    <p id="search-tip" class="footer muted">Hledej i bez diakritiky: „hlav“, „bui350“, „sloupec A“ nebo „bosch elektro“. Každá část dotazu musí být v názvu nebo umístění.</p>
+    <noscript>Pro vyhledávání je potřeba povolit JavaScript.</noscript>
+  </main>
 
   <script>
-    let data1 = {};
-    let data2 = {};
-    let data3 = {};
-    let databaze = {};
+    const files = ['data_table1.json', 'data_table2.json', 'data_table3.json'];
+    const query = document.getElementById('query');
+    const searchButton = document.getElementById('search-button');
+    const retry = document.getElementById('retry');
+    const loadStatus = document.getElementById('load-status');
+    const resultStatus = document.getElementById('result-status');
+    const results = document.getElementById('vysledek');
+    let databaze = [];
+    let ready = false;
+    let loading = false;
+    let historie = nacistHistorii();
 
     function normalize(str) {
-      return (str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     }
 
-    function mergeData() {
-      databaze = Object.assign({}, data1, data2, data3);
-    }
-
-    async function loadData() {
-      const r1 = await fetch('data_table1.json');
-      data1 = await r1.json();
-      const r2 = await fetch('data_table2.json');
-      data2 = await r2.json();
-      const r3 = await fetch('data_table3.json');
-      data3 = await r3.json();
-      mergeData();
-      zobrazHistorii();
+    function nacistHistorii() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('skladHistorie'));
+        return Array.isArray(saved)
+          ? [...new Set(saved.filter(item => typeof item === 'string' && item.trim()))].slice(0, 10)
+          : [];
+      } catch {
+        return [];
+      }
     }
 
     function ulozitHistorii(dotaz) {
-      if (!dotaz) return;
-      let historie = JSON.parse(localStorage.getItem("skladHistorie")) || [];
-      historie = historie.filter(item => item !== dotaz);
-      historie.unshift(dotaz);
-      if (historie.length > 10) historie = historie.slice(0, 10);
-      localStorage.setItem("skladHistorie", JSON.stringify(historie));
+      historie = [dotaz, ...historie.filter(item => item !== dotaz)].slice(0, 10);
+      try {
+        localStorage.setItem('skladHistorie', JSON.stringify(historie));
+      } catch {
+        // Search and in-memory history also work when storage is unavailable/full.
+      }
       zobrazHistorii();
     }
 
     function zobrazHistorii() {
-      const historie = JSON.parse(localStorage.getItem("skladHistorie")) || [];
-      const el = document.getElementById("history");
-      if (historie.length === 0) { el.innerHTML = ""; return; }
-      el.innerHTML = "<strong>Poslední hledané:</strong><br>" + historie.map(h =>
-        `<span class='item' onclick='document.getElementById("query").value=${JSON.stringify(h)};hledat();'>${h}</span>`
-      ).join(", ");
+      const el = document.getElementById('history');
+      el.replaceChildren();
+      if (!historie.length) return;
+      const heading = document.createElement('strong');
+      heading.textContent = 'Poslední hledané:';
+      const list = document.createElement('div');
+      list.className = 'history-items';
+      for (const text of historie) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'item';
+        button.textContent = text;
+        button.disabled = !ready;
+        button.addEventListener('click', () => {
+          query.value = text;
+          hledat();
+        });
+        list.append(button);
+      }
+      el.append(heading, list);
+    }
+
+    function validateData(data) {
+      if (!data || typeof data !== 'object' || Array.isArray(data) ||
+          Object.entries(data).some(([name, location]) =>
+            !name.trim() || typeof location !== 'string' || !location.trim())) {
+        throw new Error('Invalid warehouse data');
+      }
+      // Keep individual records: identical names in different tables must not overwrite.
+      return Object.entries(data).map(([name, location]) => ({
+        name, location, searchable: normalize(name) + '\n' + normalize(location)
+      }));
+    }
+
+    async function loadData() {
+      if (loading) return;
+      loading = true;
+      ready = false;
+      searchButton.disabled = true;
+      retry.hidden = true;
+      loadStatus.textContent = 'Načítám skladová data…';
+      results.setAttribute('aria-busy', 'true');
+      results.replaceChildren();
+      resultStatus.textContent = '';
+      zobrazHistorii();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        const tables = await Promise.all(files.map(async file => {
+          const response = await fetch(file, { signal: controller.signal });
+          if (!response.ok) throw new Error('Could not load warehouse data');
+          return validateData(await response.json());
+        }));
+        databaze = tables.flat();
+        ready = true;
+        loadStatus.textContent = `Data načtena. Záznamů: ${databaze.length}.`;
+        searchButton.disabled = false;
+      } catch {
+        controller.abort();
+        databaze = [];
+        loadStatus.textContent = 'Skladová data se nepodařilo načíst. Zkontroluj připojení a zkus to znovu.';
+        retry.hidden = false;
+      } finally {
+        clearTimeout(timeout);
+        loading = false;
+        results.setAttribute('aria-busy', 'false');
+        zobrazHistorii();
+      }
+    }
+
+    function highlight(text, terms) {
+      // Map normalized characters back to the original text (including Czech accents).
+      const source = normalize(text);
+      const offsets = [];
+      let offset = 0;
+      for (const character of text) {
+        const end = offset + character.length;
+        const normalized = normalize(character);
+        for (let i = 0; i < normalized.length; i++) offsets.push([offset, end]);
+        if (!normalized.length && offsets.length) offsets[offsets.length - 1][1] = end;
+        offset = end;
+      }
+      const matched = new Array(text.length).fill(false);
+      for (const term of terms) {
+        let index = source.indexOf(term);
+        while (index !== -1) {
+          const start = offsets[index][0];
+          const end = offsets[index + term.length - 1][1];
+          matched.fill(true, start, end);
+          index = source.indexOf(term, index + 1);
+        }
+      }
+      const fragment = document.createDocumentFragment();
+      for (let start = 0; start < text.length;) {
+        let end = start + 1;
+        while (end < text.length && matched[end] === matched[start]) end++;
+        const part = text.slice(start, end);
+        if (matched[start]) {
+          const mark = document.createElement('mark');
+          mark.textContent = part;
+          fragment.append(mark);
+        } else {
+          fragment.append(document.createTextNode(part));
+        }
+        start = end;
+      }
+      return fragment;
     }
 
     function hledat() {
-      const dotaz = normalize(document.getElementById("query").value.trim());
-      ulozitHistorii(dotaz);
-      if (!dotaz) return;
-      let vysledky = "";
-      for (const [nazev, pozice] of Object.entries(databaze)) {
-        if (normalize(nazev).includes(dotaz)) {
-          // pozice už obsahuje plný text "Umístění - ...: Sloupec X, řádek Y"
-          vysledky += `<strong>${nazev}</strong><br>${pozice}<br><br>`;
-        }
+      if (!ready) return;
+      const dotaz = query.value.trim();
+      const terms = [...new Set(normalize(dotaz).split(/\s+/).filter(Boolean))];
+      results.replaceChildren();
+      if (!terms.length) {
+        resultStatus.textContent = 'Zadej název, zkratku nebo umístění.';
+        query.focus();
+        return;
       }
-      document.getElementById("vysledek").innerHTML = vysledky || "Hmmm, nic tu není – jdi za Jakubem";
+      ulozitHistorii(dotaz);
+      const matches = databaze.filter(item => terms.every(term => item.searchable.includes(term)));
+      resultStatus.textContent = matches.length
+        ? `Nalezených záznamů: ${matches.length}.`
+        : 'Hmmm, nic tu není – zkus jiný dotaz nebo se zeptej Jakuba.';
+      const fragment = document.createDocumentFragment();
+      for (const item of matches) {
+        const card = document.createElement('article');
+        card.className = 'result-item';
+        const name = document.createElement('h2');
+        name.append(highlight(item.name, terms));
+        const location = document.createElement('p');
+        location.append(highlight(item.location, terms));
+        card.append(name, location);
+        fragment.append(card);
+      }
+      results.append(fragment);
     }
 
+    document.getElementById('search-form').addEventListener('submit', event => {
+      event.preventDefault();
+      hledat();
+    });
+    retry.addEventListener('click', loadData);
     loadData();
   </script>
 </body>
