@@ -2,156 +2,412 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#2e7d32">
-  <title>Akumo Sklad – vyhledávání šuplíků</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a100e">
+  <meta name="description" content="AKUMO SKLAD – rychlé vyhledávání dílů a interaktivní 3D mapa šuplíků.">
+  <title>AKUMO SKLAD | Najdi díl. Vysuň řešení.</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="box">
-    <h1 class="logo">AKUMO SKLAD</h1>
-    <form id="search-form" class="controls" role="search">
-      <label class="sr-only" for="query">Hledat položku nebo číslo šuplíku</label>
-      <input type="search" id="query" placeholder="Název položky nebo šuplík (např. A1)" autocomplete="off" enterkeyhint="search">
-      <button class="primary" type="submit" aria-label="Hledat">🔍</button>
-    </form>
-    <div id="history" aria-label="Historie hledání"></div>
-    <section id="vysledek" class="vysledek" aria-live="polite" aria-atomic="false">
-      <p class="muted">Načítám šuplíky…</p>
-    </section>
-    <p class="footer muted">Hledání funguje i bez diakritiky a podle části názvu nebo označení šuplíku.</p>
-  </main>
+  <div class="ambient ambient--one" aria-hidden="true"></div>
+  <div class="ambient ambient--two" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="Akumo Sklad">
+        <span class="brand-mark" aria-hidden="true"><span>A</span></span>
+        <span class="brand-wordmark"><b>AKUMO</b><small>SKLADOVÝ NAVIGÁTOR</small></span>
+      </div>
+      <div class="topbar-status" aria-live="polite">
+        <span id="status-light" class="status-light"></span>
+        <span id="status-text">NAČÍTÁM DATABÁZI</span>
+        <span id="header-count" class="topbar-count">—</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="main-title">
+        <div class="hero-content">
+          <div class="eyebrow"><span class="eyebrow-line"></span> INTELIGENTNÍ ORIENTACE VE SKLADU <span class="eyebrow-index">/ 01</span></div>
+          <h1 id="main-title">Najdi díl.<br><span>Vysuň řešení.</span></h1>
+          <p class="hero-description">Napiš, co hledáš. My ti ukážeme <strong>přesný šuplík</strong> — a rovnou ho rozsvítíme v digitálním regálu.</p>
+
+          <form id="search-form" class="search-bar" role="search">
+            <label for="query" class="visually-hidden">Název dílu nebo označení šuplíku</label>
+            <svg class="search-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.8" cy="10.8" r="7.2"></circle><path d="m16.2 16.2 5 5"></path></svg>
+            <input id="query" name="query" type="search" placeholder="Např. převodník, Bosch, A3…" autocomplete="off" enterkeyhint="search" spellcheck="false">
+            <button id="search-button" class="search-submit" type="submit"><span>NAJÍT DÍL</span><span class="arrow" aria-hidden="true">↗</span></button>
+          </form>
+
+          <div class="quick-access">
+            <span class="quick-label">ZKUS HLEDAT</span>
+            <div class="quick-terms">
+              <button type="button" class="quick-term" data-term="hlavové složení">Hlavové složení <span>↗</span></button>
+              <button type="button" class="quick-term" data-term="Bosch">Bosch <span>↗</span></button>
+              <button type="button" class="quick-term" data-term="Bafang">Bafang <span>↗</span></button>
+              <button type="button" class="quick-term" data-term="A3">Šuplík A3 <span>↗</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-side" aria-hidden="true">
+          <div class="orbit orbit--outer"></div><div class="orbit orbit--inner"></div>
+          <div class="hero-illustration">
+            <div class="hero-cubby hero-cubby--left"></div>
+            <div class="hero-cubby hero-cubby--middle"><span class="hero-cubby-label">A3</span><span class="hero-cubby-handle"></span></div>
+            <div class="hero-cubby hero-cubby--right"></div>
+            <span class="hero-spark hero-spark--a"></span><span class="hero-spark hero-spark--b"></span>
+          </div>
+          <span class="hero-orbit-label">SYSTÉM / AKTIVNÍ</span>
+        </div>
+      </section>
+
+      <div class="metrics" aria-label="Přehled skladu">
+        <div class="metric"><span class="metric-icon">▦</span><span><b id="metric-drawers">—</b><small>EVIDOVANÝCH ŠUPLÍKŮ</small></span></div>
+        <div class="metric"><span class="metric-icon">◫</span><span><b id="metric-sections">—</b><small>SEKCÍ REGÁLU</small></span></div>
+        <div class="metric metric--note"><span class="metric-icon">✦</span><span><b>JEDEN POHYB</b><small>OD HLEDÁNÍ K ŠUPLÍKU</small></span></div>
+      </div>
+
+      <div class="workspace">
+        <section class="panel results-panel" aria-labelledby="results-title">
+          <div class="panel-head">
+            <div><div class="section-kicker">/ VYHLEDÁVÁNÍ</div><h2 id="results-title">Výsledky</h2></div>
+            <span class="panel-pill" id="results-count">PŘIPRAVENO</span>
+          </div>
+
+          <div id="history" class="history" aria-label="Poslední hledání"></div>
+
+          <div id="results" class="results" aria-live="polite" aria-atomic="false">
+            <div class="empty-state"><span class="empty-glyph" aria-hidden="true">⌕</span><h3>Tvůj díl už tu někde je.</h3><p>Začni psát název nebo vyber šuplík vpravo.</p></div>
+          </div>
+          <div class="results-footer"><span class="tiny-led"></span> HLEDÁNÍ BEZ DIAKRITIKY · VŠECHNY SHODY</div>
+        </section>
+
+        <section class="panel visual-panel" id="visualizer" aria-labelledby="visual-title">
+          <div class="panel-head visual-panel-head">
+            <div><div class="section-kicker">/ INTERAKTIVNÍ MAPA</div><h2 id="visual-title">3D regál <span class="title-star">✳</span></h2></div>
+            <div class="map-live"><span class="tiny-led"></span> LIVE MAPA</div>
+          </div>
+          <div class="section-caption">
+            <div><span class="field-label">VYBER SEKCI</span><span class="caption-text">Kliknutím otevřeš libovolný šuplík</span></div>
+            <span id="section-readout" class="section-readout">SEKCE —</span>
+          </div>
+          <nav id="section-nav" class="section-nav" aria-label="Výběr sekce regálu"></nav>
+
+          <div class="scene" aria-label="Digitální schéma šuplíků">
+            <div class="scene-glow" aria-hidden="true"></div>
+            <div class="rack">
+              <div class="rack-topline">
+                <span class="rack-topline-brand">A / AKUMO SYSTEMS</span>
+                <span id="rack-heading">SEKCE —</span>
+                <span class="rack-topline-dot" aria-hidden="true"></span>
+              </div>
+              <div class="rack-surface">
+                <div id="drawer-grid" class="drawer-grid" aria-label="Šuplíky vybrané sekce"></div>
+              </div>
+              <div class="rack-base"><span>AKUMO</span><span>STORAGE SYSTEM / <span id="rack-base-label">—</span></span><span class="rack-base-lights"><i></i><i></i><i></i></span></div>
+            </div>
+            <p class="scene-hint"><span class="scene-hint-symbol">↖</span> ZELENĚ SVÍTÍ NALEZENÉ ŠUPLÍKY</p>
+          </div>
+
+          <div id="drawer-detail" class="drawer-detail" aria-live="polite">
+            <div class="detail-no-data">Vyber šuplík a zobrazí se jeho obsah.</div>
+          </div>
+          <p class="visual-footnote">Digitální přehled podle označení šuplíků; nemusí odpovídat jejich fyzickému rozestavení.</p>
+        </section>
+      </div>
+    </main>
+
+    <footer class="page-footer"><span>© AKUMO / SKLADOVÝ NAVIGÁTOR</span><span>VYTVOŘENO PRO RYCHLOST. NAVRŽENO PRO PRAXI.</span></footer>
+  </div>
+
   <script>
     'use strict';
-    const HISTORY_KEY = 'akumoSuplikyHistorie';
-    const queryInput = document.getElementById('query');
-    const historyEl = document.getElementById('history');
-    const resultsEl = document.getElementById('vysledek');
-    const form = document.getElementById('search-form');
-    let supliky = [];
-    let loaded = false;
 
-    function normalize(text) {
-      return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('cs').trim();
+    const STORAGE_KEY = 'akumoSuplikyHistorie';
+    const queryInput = document.getElementById('query');
+    const resultsEl = document.getElementById('results');
+    const resultsCountEl = document.getElementById('results-count');
+    const historyEl = document.getElementById('history');
+    const sectionNavEl = document.getElementById('section-nav');
+    const drawerGridEl = document.getElementById('drawer-grid');
+    const drawerDetailEl = document.getElementById('drawer-detail');
+    const collator = new Intl.Collator('cs', { numeric: true, sensitivity: 'base' });
+
+    let records = [];
+    let sections = [];
+    let activeSection = '';
+    let selectedCode = '';
+    let matchedRecords = [];
+    let loaded = false;
+    let activeQuery = '';
+
+    function normal(text) {
+      return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    }
+
+    function make(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function sectionOf(code) {
+      return String(code).match(/^[A-Za-z]+/)?.[0].toUpperCase() || '';
     }
 
     function getHistory() {
       try {
-        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-        return Array.isArray(history) ? history.filter(v => typeof v === 'string').slice(0, 10) : [];
+        const items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        return Array.isArray(items) ? items.filter(item => typeof item === 'string').slice(0, 10) : [];
       } catch { return []; }
+    }
+
+    function rememberQuery(value) {
+      if (!value.trim()) return;
+      try {
+        const list = getHistory().filter(item => normal(item) !== normal(value));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([value.trim(), ...list].slice(0, 10)));
+      } catch { /* Úložiště může být zakázané. */ }
+      renderHistory();
     }
 
     function renderHistory() {
       historyEl.replaceChildren();
-      const history = getHistory();
-      if (!history.length) return;
-      const title = document.createElement('strong');
-      title.textContent = 'Poslední hledané:';
-      historyEl.append(title);
-      const items = document.createElement('div');
-      items.className = 'history-items';
-      for (const item of history) {
-        const button = document.createElement('button');
+      const list = getHistory();
+      if (!list.length) return;
+      historyEl.append(make('span', 'history-caption', 'NEDÁVNO HLEDANÉ'));
+      const wrap = make('div', 'history-chips');
+      list.forEach(term => {
+        const button = make('button', 'history-chip', term);
         button.type = 'button';
-        button.className = 'history-item';
-        button.textContent = item;
         button.addEventListener('click', () => {
-          queryInput.value = item;
-          search(false);
+          queryInput.value = term;
+          updateSearch(true);
         });
-        items.append(button);
-      }
-      historyEl.append(items);
-    }
-
-    function saveHistory(value) {
-      try {
-        const history = getHistory().filter(v => normalize(v) !== normalize(value));
-        history.unshift(value);
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 10)));
-      } catch { /* Soukromý režim může blokovat úložiště. */ }
-      renderHistory();
-    }
-
-    function showMessage(message) {
-      resultsEl.replaceChildren();
-      const p = document.createElement('p');
-      p.className = 'muted';
-      p.textContent = message;
-      resultsEl.append(p);
-    }
-
-    function search(remember = true) {
-      const original = queryInput.value.trim();
-      if (!loaded) {
-        showMessage('Data se ještě nenačetla.');
-        return;
-      }
-      if (!original) {
-        showMessage('Zadej název položky nebo označení šuplíku.');
-        return;
-      }
-      if (remember) saveHistory(original);
-      const terms = normalize(original).split(/\s+/).filter(Boolean);
-      const matches = supliky.filter(([index, description, status]) => {
-        if (status === 'NEŘEŠIT') return false;
-        const haystack = normalize(index + ' ' + description);
-        return terms.every(term => haystack.includes(term));
+        wrap.append(button);
       });
-      resultsEl.replaceChildren();
-      if (!matches.length) {
-        showMessage('Hmmm, nic tu není – jdi za Jakubem');
-        return;
-      }
-      const count = document.createElement('p');
-      count.className = 'result-count';
-      count.textContent = `Nalezeno: ${matches.length} ${matches.length === 1 ? 'šuplík' : matches.length < 5 ? 'šuplíky' : 'šuplíků'}`;
-      resultsEl.append(count);
-      const list = document.createElement('div');
-      list.className = 'result-list';
-      for (const [index, description, status = 'OK'] of matches) {
-        const item = document.createElement('article');
-        item.className = 'result-item';
-        const heading = document.createElement('strong');
-        heading.textContent = description || 'Nepřečtený štítek';
-        const location = document.createElement('p');
-        location.className = 'result-location';
-        location.textContent = `Umístění: ${index}`;
-        item.append(heading, location);
-        if (status === 'OVĚŘIT' || status === 'NEPŘEČTENO') {
-          const warning = document.createElement('span');
-          warning.className = 'warning';
-          warning.textContent = status === 'OVĚŘIT' ? 'Popis je potřeba ověřit' : 'Štítek nelze přečíst';
-          item.append(warning);
-        }
-        list.append(item);
-      }
-      resultsEl.append(list);
+      historyEl.append(wrap);
     }
 
-    form.addEventListener('submit', event => {
-      event.preventDefault();
-      search();
-    });
+    function lookup(value) {
+      const query = normal(value);
+      if (!query) return [];
+      // Přesný index A3 musí ukázat právě A3, ne A30.
+      const compact = query.replace(/\s/g, '');
+      const exact = records.find(item => normal(item.code) === compact);
+      if (exact) return [exact];
+      // Samotné písmeno filtruje příslušnou sekci.
+      if (/^[a-z]$/.test(query) && sections.includes(query.toUpperCase())) {
+        return records.filter(item => item.section === query.toUpperCase() && item.status !== 'NEŘEŠIT');
+      }
+      const words = query.split(/\s+/).filter(Boolean);
+      return records.filter(item => item.status !== 'NEŘEŠIT' && words.every(word => normal(item.code + ' ' + item.name).includes(word)));
+    }
+
+    function renderEmpty(title, description, symbol) {
+      resultsEl.replaceChildren();
+      const box = make('div', 'empty-state');
+      box.append(make('span', 'empty-glyph', symbol));
+      box.append(make('h3', '', title));
+      box.append(make('p', '', description));
+      resultsEl.append(box);
+    }
+
+    function renderResults() {
+      resultsEl.replaceChildren();
+      if (!loaded) return renderEmpty('Připojuji databázi…', 'Načítám šuplíky.', '◌');
+      if (!activeQuery.trim()) {
+        resultsCountEl.textContent = 'PŘIPRAVENO';
+        return renderEmpty('Tvůj díl už tu někde je.', 'Začni psát název. Nebo klikni na šuplík v digitálním regálu.', '⌕');
+      }
+      resultsCountEl.textContent = matchedRecords.length + ' SHOD';
+      if (!matchedRecords.length) return renderEmpty('Hmmm, nic tu není.', 'Zkus jiný výraz, označení šuplíku — nebo jdi za Jakubem. 😄', '∅');
+      const fragment = document.createDocumentFragment();
+      matchedRecords.forEach((item, i) => {
+        const button = make('button', 'result-card' + (item.code === selectedCode ? ' is-selected' : ''));
+        button.type = 'button';
+        button.setAttribute('aria-label', 'Otevřít šuplík ' + item.code + ': ' + (item.name || 'Nepřečtený popis'));
+        const badge = make('span', 'result-code', item.code);
+        const content = make('span', 'result-content');
+        content.append(make('strong', 'result-name', item.name || 'Nepřečtený štítek'));
+        const sub = make('span', 'result-sub', 'ŠUPLÍK ' + item.code + (item.status === 'OVĚŘIT' ? '  ·  POPIS OVĚŘIT' : item.status === 'NEPŘEČTENO' ? '  ·  NEPŘEČTENO' : item.status === 'NEŘEŠIT' ? '  ·  ZATÍM NEŘEŠIT' : ''));
+        content.append(sub);
+        const arrow = make('span', 'result-arrow', '↗');
+        button.append(badge, content, arrow);
+        button.addEventListener('click', () => focusDrawer(item.code, true));
+        button.style.setProperty('--item-delay', Math.min(i * 22, 250) + 'ms');
+        fragment.append(button);
+      });
+      resultsEl.append(fragment);
+    }
+
+    function renderSectionNav() {
+      sectionNavEl.replaceChildren();
+      const fragment = document.createDocumentFragment();
+      sections.forEach(section => {
+        const button = make('button', 'section-tab' + (section === activeSection ? ' is-active' : ''), section);
+        button.type = 'button';
+        const count = matchedRecords.filter(item => item.section === section).length;
+        if (activeQuery && count) button.append(make('span', 'section-tab-count', String(count)));
+        button.setAttribute('aria-pressed', String(section === activeSection));
+        button.setAttribute('aria-label', 'Sekce ' + section + (activeQuery && count ? ', ' + count + ' shod' : ''));
+        button.addEventListener('click', () => {
+          activeSection = section;
+          const entries = records.filter(item => item.section === section);
+          const firstMatch = matchedRecords.find(item => item.section === section);
+          selectedCode = (firstMatch || entries[0])?.code || '';
+          renderSectionNav();
+          renderRack();
+          renderDetails();
+          renderResults();
+        });
+        fragment.append(button);
+      });
+      sectionNavEl.append(fragment);
+      const current = sectionNavEl.querySelector('.is-active');
+      if (current) current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+
+    function renderRack() {
+      drawerGridEl.replaceChildren();
+      const sectionRecords = records.filter(item => item.section === activeSection);
+      document.getElementById('section-readout').textContent = 'SEKCE ' + activeSection;
+      document.getElementById('rack-heading').textContent = 'SEKCE ' + activeSection;
+      document.getElementById('rack-base-label').textContent = activeSection;
+      const matchedCodes = new Set(matchedRecords.map(item => item.code));
+      const fragment = document.createDocumentFragment();
+      sectionRecords.forEach((item, i) => {
+        const matched = matchedCodes.has(item.code);
+        const selected = item.code === selectedCode;
+        let cls = 'drawer';
+        if (selected) cls += ' is-open';
+        if (activeQuery && matched) cls += ' is-match';
+        if (activeQuery && !matched) cls += ' is-dimmed';
+        const button = make('button', cls);
+        button.type = 'button';
+        button.setAttribute('aria-label', 'Šuplík ' + item.code + ': ' + (item.name || 'Nepřečtený štítek'));
+        button.setAttribute('aria-pressed', String(selected));
+        button.title = item.code + ' — ' + (item.name || 'Nepřečtený štítek');
+        button.style.setProperty('--index', i);
+        const body = make('span', 'drawer-body');
+        const front = make('span', 'drawer-front');
+        front.append(make('span', 'drawer-upper', item.code));
+        front.append(make('span', 'drawer-handle'));
+        front.append(make('span', 'drawer-bottom', ('0' + (parseInt(item.code.match(/\d+$/)?.[0] || '0', 10))).slice(-2)));
+        front.append(make('span', 'drawer-indicator'));
+        body.append(front);
+        button.append(body);
+        button.addEventListener('click', () => focusDrawer(item.code, false));
+        fragment.append(button);
+      });
+      drawerGridEl.append(fragment);
+    }
+
+    function renderDetails() {
+      drawerDetailEl.replaceChildren();
+      const item = records.find(entry => entry.code === selectedCode);
+      if (!item) {
+        drawerDetailEl.append(make('p', 'detail-no-data', 'Vyber šuplík a zobrazí se jeho obsah.'));
+        return;
+      }
+      const icon = make('span', 'detail-symbol', '▤');
+      const text = make('div', 'detail-text');
+      text.append(make('span', 'detail-kicker', 'PRÁVĚ OTEVŘENÝ ŠUPLÍK'));
+      text.append(make('strong', 'detail-name', item.name || 'Nepřečtený štítek'));
+      if (item.status === 'OVĚŘIT' || item.status === 'NEPŘEČTENO' || item.status === 'NEŘEŠIT') {
+        text.append(make('span', 'detail-warning', item.status === 'OVĚŘIT' ? '⚠ Popis je potřeba ověřit' : item.status === 'NEŘEŠIT' ? '⚠ Zatím neřešit' : '⚠ Obsah zatím nebyl přečten'));
+      }
+      const code = make('span', 'detail-code', item.code);
+      drawerDetailEl.append(icon, text, code);
+    }
+
+    function focusDrawer(code, fromResult) {
+      const item = records.find(entry => entry.code === code);
+      if (!item) return;
+      activeSection = item.section;
+      selectedCode = code;
+      renderSectionNav();
+      renderRack();
+      renderDetails();
+      renderResults();
+      if (fromResult && window.matchMedia('(max-width: 920px)').matches) {
+        document.getElementById('visualizer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function updateSearch(save) {
+      if (!loaded) return;
+      activeQuery = queryInput.value.trim();
+      if (save && activeQuery) rememberQuery(activeQuery);
+      matchedRecords = lookup(activeQuery);
+      if (matchedRecords.length) {
+        // Nech zobrazit právě aktivní sekci, pokud je mezi nalezenými.
+        const currentMatch = matchedRecords.find(item => item.section === activeSection);
+        const target = currentMatch || matchedRecords[0];
+        activeSection = target.section;
+        selectedCode = target.code;
+      } else if (!activeQuery && !records.some(item => item.code === selectedCode)) {
+        selectedCode = records[0]?.code || '';
+        activeSection = records[0]?.section || '';
+      }
+      renderSectionNav();
+      renderRack();
+      renderDetails();
+      renderResults();
+    }
 
     async function loadData() {
       try {
         const response = await fetch('supliky.json', { cache: 'no-cache' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
         const data = await response.json();
-        if (!Array.isArray(data) || !data.every(row => Array.isArray(row) && typeof row[0] === 'string' && typeof row[1] === 'string')) {
-          throw new Error('Neplatný formát souboru supliky.json');
+        if (!Array.isArray(data) || !data.every(row => Array.isArray(row) && row.length >= 2 && typeof row[0] === 'string' && typeof row[1] === 'string')) {
+          throw new Error('Neplatný formát databáze');
         }
-        supliky = data;
+        records = data.map(row => ({ code: row[0], name: row[1], status: row[2] || '', section: sectionOf(row[0]) }))
+          .filter(item => item.section && item.code)
+          .sort((a, b) => collator.compare(a.code, b.code));
+        sections = [...new Set(records.map(item => item.section))];
+        activeSection = sections[0] || '';
+        selectedCode = records[0]?.code || '';
         loaded = true;
-        showMessage(`Načteno ${supliky.length} šuplíků. Zadej hledanou položku.`);
-        if (queryInput.value.trim()) search(false);
+        document.getElementById('metric-drawers').textContent = String(records.length);
+        document.getElementById('metric-sections').textContent = String(sections.length);
+        document.getElementById('header-count').textContent = records.length + ' ŠUPLÍKŮ';
+        document.getElementById('status-text').textContent = 'SYSTÉM PŘIPRAVEN';
+        document.getElementById('status-light').classList.add('is-ready');
+        renderSectionNav();
+        renderRack();
+        renderDetails();
+        updateSearch(false);
       } catch (error) {
-        console.error('Chyba načítání šuplíků:', error);
-        showMessage('Nepodařilo se načíst databázi šuplíků. Zkus obnovit stránku.');
+        console.error('AKUMO: načtení databáze selhalo', error);
+        document.getElementById('status-text').textContent = 'DATA NEDOSTUPNÁ';
+        document.getElementById('status-light').classList.add('is-error');
+        resultsCountEl.textContent = 'CHYBA';
+        renderEmpty('Databáze není dostupná.', 'Obnov stránku nebo zkontroluj soubor supliky.json.', '!');
       }
     }
+
+    document.getElementById('search-form').addEventListener('submit', event => {
+      event.preventDefault();
+      updateSearch(true);
+    });
+    queryInput.addEventListener('input', () => updateSearch(false));
+    queryInput.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        queryInput.value = '';
+        updateSearch(false);
+      }
+    });
+    document.querySelectorAll('[data-term]').forEach(button => {
+      button.addEventListener('click', () => {
+        queryInput.value = button.dataset.term;
+        updateSearch(true);
+      });
+    });
 
     renderHistory();
     loadData();
