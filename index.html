@@ -1,82 +1,159 @@
-
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Akumo Sklad</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2e7d32">
+  <title>Akumo Sklad – vyhledávání šuplíků</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="box">
-    <div class="logo">AKUMO SKLAD</div>
-    <div class="controls">
-      <input type="text" id="query" placeholder="Zadej název položky..." />
-      <button class="primary" onclick="hledat()">🔍</button>
-    </div>
-    <div id="history"></div>
-    <div id="vysledek" class="vysledek"></div>
-    <div class="footer muted">Tip: hledej bez diakritiky nebo jako zkratku (např. „hlavove slozeni, hlav“). </div>
-  </div>
-
+  <main class="box">
+    <h1 class="logo">AKUMO SKLAD</h1>
+    <form id="search-form" class="controls" role="search">
+      <label class="sr-only" for="query">Hledat položku nebo číslo šuplíku</label>
+      <input type="search" id="query" placeholder="Název položky nebo šuplík (např. A1)" autocomplete="off" enterkeyhint="search">
+      <button class="primary" type="submit" aria-label="Hledat">🔍</button>
+    </form>
+    <div id="history" aria-label="Historie hledání"></div>
+    <section id="vysledek" class="vysledek" aria-live="polite" aria-atomic="false">
+      <p class="muted">Načítám šuplíky…</p>
+    </section>
+    <p class="footer muted">Hledání funguje i bez diakritiky a podle části názvu nebo označení šuplíku.</p>
+  </main>
   <script>
-    let data1 = {};
-    let data2 = {};
-    let data3 = {};
-    let databaze = {};
+    'use strict';
+    const HISTORY_KEY = 'akumoSuplikyHistorie';
+    const queryInput = document.getElementById('query');
+    const historyEl = document.getElementById('history');
+    const resultsEl = document.getElementById('vysledek');
+    const form = document.getElementById('search-form');
+    let supliky = [];
+    let loaded = false;
 
-    function normalize(str) {
-      return (str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    function normalize(text) {
+      return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('cs').trim();
     }
 
-    function mergeData() {
-      databaze = Object.assign({}, data1, data2, data3);
+    function getHistory() {
+      try {
+        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        return Array.isArray(history) ? history.filter(v => typeof v === 'string').slice(0, 10) : [];
+      } catch { return []; }
     }
+
+    function renderHistory() {
+      historyEl.replaceChildren();
+      const history = getHistory();
+      if (!history.length) return;
+      const title = document.createElement('strong');
+      title.textContent = 'Poslední hledané:';
+      historyEl.append(title);
+      const items = document.createElement('div');
+      items.className = 'history-items';
+      for (const item of history) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'history-item';
+        button.textContent = item;
+        button.addEventListener('click', () => {
+          queryInput.value = item;
+          search(false);
+        });
+        items.append(button);
+      }
+      historyEl.append(items);
+    }
+
+    function saveHistory(value) {
+      try {
+        const history = getHistory().filter(v => normalize(v) !== normalize(value));
+        history.unshift(value);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 10)));
+      } catch { /* Soukromý režim může blokovat úložiště. */ }
+      renderHistory();
+    }
+
+    function showMessage(message) {
+      resultsEl.replaceChildren();
+      const p = document.createElement('p');
+      p.className = 'muted';
+      p.textContent = message;
+      resultsEl.append(p);
+    }
+
+    function search(remember = true) {
+      const original = queryInput.value.trim();
+      if (!loaded) {
+        showMessage('Data se ještě nenačetla.');
+        return;
+      }
+      if (!original) {
+        showMessage('Zadej název položky nebo označení šuplíku.');
+        return;
+      }
+      if (remember) saveHistory(original);
+      const terms = normalize(original).split(/\s+/).filter(Boolean);
+      const matches = supliky.filter(([index, description, status]) => {
+        if (status === 'NEŘEŠIT') return false;
+        const haystack = normalize(index + ' ' + description);
+        return terms.every(term => haystack.includes(term));
+      });
+      resultsEl.replaceChildren();
+      if (!matches.length) {
+        showMessage('Hmmm, nic tu není – jdi za Jakubem');
+        return;
+      }
+      const count = document.createElement('p');
+      count.className = 'result-count';
+      count.textContent = `Nalezeno: ${matches.length} ${matches.length === 1 ? 'šuplík' : matches.length < 5 ? 'šuplíky' : 'šuplíků'}`;
+      resultsEl.append(count);
+      const list = document.createElement('div');
+      list.className = 'result-list';
+      for (const [index, description, status = 'OK'] of matches) {
+        const item = document.createElement('article');
+        item.className = 'result-item';
+        const heading = document.createElement('strong');
+        heading.textContent = description || 'Nepřečtený štítek';
+        const location = document.createElement('p');
+        location.className = 'result-location';
+        location.textContent = `Umístění: ${index}`;
+        item.append(heading, location);
+        if (status === 'OVĚŘIT' || status === 'NEPŘEČTENO') {
+          const warning = document.createElement('span');
+          warning.className = 'warning';
+          warning.textContent = status === 'OVĚŘIT' ? 'Popis je potřeba ověřit' : 'Štítek nelze přečíst';
+          item.append(warning);
+        }
+        list.append(item);
+      }
+      resultsEl.append(list);
+    }
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      search();
+    });
 
     async function loadData() {
-      const r1 = await fetch('data_table1.json');
-      data1 = await r1.json();
-      const r2 = await fetch('data_table2.json');
-      data2 = await r2.json();
-      const r3 = await fetch('data_table3.json');
-      data3 = await r3.json();
-      mergeData();
-      zobrazHistorii();
-    }
-
-    function ulozitHistorii(dotaz) {
-      if (!dotaz) return;
-      let historie = JSON.parse(localStorage.getItem("skladHistorie")) || [];
-      historie = historie.filter(item => item !== dotaz);
-      historie.unshift(dotaz);
-      if (historie.length > 10) historie = historie.slice(0, 10);
-      localStorage.setItem("skladHistorie", JSON.stringify(historie));
-      zobrazHistorii();
-    }
-
-    function zobrazHistorii() {
-      const historie = JSON.parse(localStorage.getItem("skladHistorie")) || [];
-      const el = document.getElementById("history");
-      if (historie.length === 0) { el.innerHTML = ""; return; }
-      el.innerHTML = "<strong>Poslední hledané:</strong><br>" + historie.map(h =>
-        `<span class='item' onclick='document.getElementById("query").value=${JSON.stringify(h)};hledat();'>${h}</span>`
-      ).join(", ");
-    }
-
-    function hledat() {
-      const dotaz = normalize(document.getElementById("query").value.trim());
-      ulozitHistorii(dotaz);
-      if (!dotaz) return;
-      let vysledky = "";
-      for (const [nazev, pozice] of Object.entries(databaze)) {
-        if (normalize(nazev).includes(dotaz)) {
-          // pozice už obsahuje plný text "Umístění - ...: Sloupec X, řádek Y"
-          vysledky += `<strong>${nazev}</strong><br>${pozice}<br><br>`;
+      try {
+        const response = await fetch('supliky.json', { cache: 'no-cache' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (!Array.isArray(data) || !data.every(row => Array.isArray(row) && typeof row[0] === 'string' && typeof row[1] === 'string')) {
+          throw new Error('Neplatný formát souboru supliky.json');
         }
+        supliky = data;
+        loaded = true;
+        showMessage(`Načteno ${supliky.length} šuplíků. Zadej hledanou položku.`);
+        if (queryInput.value.trim()) search(false);
+      } catch (error) {
+        console.error('Chyba načítání šuplíků:', error);
+        showMessage('Nepodařilo se načíst databázi šuplíků. Zkus obnovit stránku.');
       }
-      document.getElementById("vysledek").innerHTML = vysledky || "Hmmm, nic tu není – jdi za Jakubem";
     }
 
+    renderHistory();
     loadData();
   </script>
 </body>
