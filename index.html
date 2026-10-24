@@ -267,7 +267,16 @@
       });
       sectionNavEl.append(fragment);
       const current = sectionNavEl.querySelector('.is-active');
-      if (current) current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      if (current) {
+        // Posouvá pouze pás se sekcemi, nikoliv celou stránku při psaní.
+        const navRect = sectionNavEl.getBoundingClientRect();
+        const tabRect = current.getBoundingClientRect();
+        if (tabRect.left < navRect.left) {
+          sectionNavEl.scrollLeft -= navRect.left - tabRect.left + 8;
+        } else if (tabRect.right > navRect.right) {
+          sectionNavEl.scrollLeft += tabRect.right - navRect.right + 8;
+        }
+      }
     }
 
     function renderRack() {
