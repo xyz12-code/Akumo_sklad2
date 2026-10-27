@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>SERVIS PRO – Mobilní zakázky (DEMO)</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172238;background:#edf1f5;--ink:#172238;--sub:#657187;--blue:#2563eb;--green:#059669}
+    *{box-sizing:border-box}body{margin:0}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.65}
+    .top{background:#0b1220;color:#fff;padding:20px max(18px,calc((100vw - 980px)/2));display:flex;align-items:center;justify-content:space-between;gap:14px}
+    .brand{font-weight:900;font-size:21px;letter-spacing:.5px}.brand small{display:block;font-weight:500;letter-spacing:0;font-size:12px;color:#b6c5d9;margin-top:4px}
+    .pill{border-radius:99px;padding:5px 10px;background:#174c3f;color:#a4eed0;font-size:11px;font-weight:800;letter-spacing:.5px}
+    main{max-width:980px;margin:0 auto;padding:18px 14px 54px}nav{display:flex;gap:9px;margin-bottom:16px}nav button{flex:1;background:#fff;border:1px solid #d8e0e8;border-radius:13px;padding:12px 8px;font-weight:700;color:#51627b}nav button.active{background:#1e293b;color:#fff;border-color:#1e293b}
+    .layout{display:grid;grid-template-columns:1fr;gap:14px}.sheet{background:#fff;border:1px solid #dce3eb;border-radius:19px;padding:19px;box-shadow:0 7px 28px rgba(21,40,65,.045);margin-bottom:13px}
+    h1{font-size:23px;margin:2px 0 5px;letter-spacing:-.5px}h2{font-size:17px;margin:0 0 13px}p{line-height:1.5}.muted{font-size:13px;color:var(--sub);margin:4px 0 0}.stephead{display:flex;align-items:center;gap:10px;margin-bottom:14px}.num{background:#e5f0ff;color:#1d4ed8;border-radius:10px;width:31px;height:31px;display:grid;place-items:center;font-weight:900}.stephead h2{margin:0}
+    label{font-size:13px;color:#45556b;font-weight:700;display:block;margin:11px 0 6px}input,select,textarea{border:1px solid #cbd6e2;border-radius:12px;background:#fff;color:#111c30;outline:none;padding:12px 13px;width:100%;min-height:46px}input:focus,textarea:focus,select:focus{border-color:#2563eb;box-shadow:0 0 0 3px #dbeafe}input[readonly]{background:#f3f6fb}textarea{resize:vertical;min-height:87px}.vinfield{font-size:18px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase}.help{font-size:12px;color:var(--sub);line-height:1.45;margin:7px 0}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:11px}.btn{display:inline-flex;justify-content:center;align-items:center;gap:8px;border:0;border-radius:12px;min-height:47px;padding:11px 15px;font-weight:800;font-size:14px}.primary{background:#2563eb;color:white}.green{background:#069568;color:#fff}.secondary{background:#eef2f7;color:#25344c}.outline{background:white;color:#2563eb;border:1px solid #99baff}.wide{width:100%}.buttonbar{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0}.buttonbar .btn{flex:1;min-width:130px}.upload{position:relative;overflow:hidden}.upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .status{background:#f1f5f9;border:1px solid #dbe3ed;border-radius:12px;padding:11px 12px;font-size:13px;color:#415269;line-height:1.4;margin-top:11px}.status.good{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}.status.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}.status.bad{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+    .photo{max-width:100%;max-height:200px;display:block;object-fit:contain;border-radius:11px;margin:12px auto 0}.thumbs{display:flex;gap:8px;flex-wrap:wrap}.thumbs img{width:76px;height:76px;object-fit:cover;border-radius:9px;border:1px solid #d7e1e9}.chip{font-size:11px;border-radius:99px;padding:5px 9px;font-weight:800;background:#eef2f7;color:#51627b;display:inline-block}.chip.blue{background:#dbeafe;color:#1d4ed8}.chip.green{background:#dcfce7;color:#166534}.chip.amber{background:#fef3c7;color:#92400e}
+    .jobs{display:grid;gap:10px}.job{border:1px solid #dce3eb;border-radius:13px;padding:14px;background:white}.jobtitle{display:flex;justify-content:space-between;gap:10px;align-items:center}.job h3{font-size:16px;margin:0 0 4px}.job .meta{font-size:12px;color:#617086;margin:4px 0}.job .controls{display:flex;gap:8px;align-items:center;margin-top:10px}.job .controls select{font-size:13px;min-height:40px;padding:6px}.job .controls button{min-height:40px;font-size:12px;white-space:nowrap}.notice{font-size:13px;background:#e9f1ff;border:1px solid #c3dafe;color:#24436f;border-radius:13px;padding:12px;line-height:1.5;margin-bottom:12px}.foot{color:#76849a;font-size:11px;line-height:1.5;text-align:center;padding:10px 12px}.hidden{display:none!important}
+    @media(min-width:760px){.layout{grid-template-columns:1.05fr .95fr;align-items:start}.sheet{padding:23px}.rightcol{position:sticky;top:12px}}@media(max-width:390px){.row{grid-template-columns:1fr}.buttonbar{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="brand">🔧 SERVIS PRO <small>Digitální zakázky pro autoservis</small></div><span class="pill">TESTOVACÍ VERZE</span></header>
+  <main>
+    <nav><button class="active" id="navNew" type="button">＋ Nová zakázka</button><button id="navJobs" type="button">☷ Přehled zakázek <span id="jobCount">0</span></button></nav>
+    <div id="pageNew">
+      <h1>Přijmout auto do práce</h1><p class="muted" style="margin-bottom:17px">Založení zakázky mechanikem. Vyfoť VIN a ověř automaticky dostupné údaje o autě.</p>
+      <div class="layout">
+        <div>
+          <section class="sheet">
+            <div class="stephead"><span class="num">1</span><h2>Identifikace vozidla</h2></div>
+            <div class="buttonbar">
+              <label class="btn primary upload" style="margin:0;color:#fff;cursor:pointer">📷 Vyfotit VIN<input id="vinPhoto" type="file" accept="image/*" capture="environment" aria-label="Vyfotit VIN" /></label>
+              <button id="sampleVin" type="button" class="btn secondary">Vyzkoušet testovací VIN</button>
+            </div>
+            <img id="vinPreview" class="photo hidden" alt="Nahraná fotografie VIN" />
+            <div id="ocrStatus" class="status">Fotoaparát telefonu načte fotografii a OCR z ní rozpozná text. První rozpoznání vyžaduje internet kvůli knihovně OCR.</div>
+            <label for="vin">VIN – z fotografie nebo ručně</label>
+            <input id="vin" name="vin" class="vinfield" maxlength="17" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="17 znaků VIN" />
+            <p id="vinCount" class="help">0/17 znaků · Po rozpoznání vždy zkontroluj.</p>
+            <button id="decode" type="button" class="btn outline wide">🔎 Zkontrolovat VIN a doplnit auto</button>
+            <div id="duplicate" class="status hidden"></div>
+          </section>
+          <section class="sheet">
+            <div class="stephead"><span class="num">2</span><h2>Údaje o autě</h2></div>
+            <div id="decodeStatus" class="status">Po vyplnění VIN se pokusíme dohledat údaje o vozidle. Všechna pole lze upravit.</div>
+            <div class="row"><div><label for="make">Značka</label><input id="make" placeholder="Škoda" /></div><div><label for="model">Model</label><input id="model" placeholder="Octavia III" /></div></div>
+            <div class="row"><div><label for="year">Modelový rok</label><input id="year" inputmode="numeric" maxlength="4" placeholder="2016" /></div><div><label for="fuel">Palivo</label><input id="fuel" placeholder="Nafta" /></div></div>
+            <div class="row"><div><label for="engine">Motor / objem</label><input id="engine" placeholder="2.0 TDI / 1968 cm³" /></div><div><label for="power">Výkon (kW)</label><input id="power" inputmode="decimal" placeholder="110" /></div></div>
+            <div class="row"><div><label for="plate">SPZ / RZ</label><input id="plate" placeholder="1AB 2345" autocapitalize="characters" /></div><div><label for="km">Stav km</label><input id="km" type="number" min="0" placeholder="183500" /></div></div>
+          </section>
+        </div>
+        <div class="rightcol">
+          <section class="sheet">
+            <div class="stephead"><span class="num">3</span><h2>Nová zakázka</h2></div>
+            <label for="mechanic">Mechanik (v demu volitelný účet)</label>
+            <select id="mechanic"><option>Petr</option><option>Honza</option><option>Tomáš</option><option>Karel</option><option>David</option></select>
+            <div class="row"><div><label for="customer">Zákazník</label><input id="customer" placeholder="Jméno zákazníka" /></div><div><label for="phone">Telefon</label><input id="phone" type="tel" placeholder="+420…" /></div></div>
+            <label for="work">Co se má opravit?</label><textarea id="work" placeholder="Např. Výměna předních brzd, při brzdění vibruje volant…"></textarea>
+            <label for="deadline">Požadovaný termín</label><input id="deadline" type="date" />
+            <label>Fotky vozidla nebo závady</label>
+            <label class="btn secondary upload wide" style="cursor:pointer">📷 Přidat fotografie<input id="workPhotos" type="file" accept="image/*" capture="environment" multiple aria-label="Přidat fotografie závady" /></label>
+            <p class="help">Pro testovací verzi maximálně 3 zmenšené fotky na zakázku.</p>
+            <div id="workThumbs" class="thumbs"></div>
+            <div class="buttonbar" style="margin-top:20px">
+              <button id="saveAccepted" type="button" class="btn secondary">Uložit jako přijaté</button>
+              <button id="startWork" type="button" class="btn green">▶ Zahájit práci</button>
+            </div>
+            <p class="help">Po zahájení se zakázka objeví na přehledu s mechanikem a časem zahájení.</p>
+          </section>
+          <div class="notice"><strong>Jak to bude fungovat v ostré verzi?</strong> VIN se nejdřív porovná se společnou databází dílny. Pokud už vozidlo existuje, načte se jeho karta. Jinak se technické údaje hledají v externí databázi. V demu je databáze jen v tomto prohlížeči.</div>
+        </div>
+      </div>
+    </div>
+    <div id="pageJobs" class="hidden">
+      <h1>Zakázky autoservisu</h1><p class="muted" style="margin-bottom:16px">Lokální testovací přehled. Změny se neodesílají dalším mechanikům.</p>
+      <div class="sheet"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="margin:0">Zakázky</h2><span class="chip" id="sumJobs">0 celkem</span></div><div id="jobs" class="jobs" style="margin-top:14px"></div></div>
+    </div>
+    <p class="foot">DEMO bez přihlášení, zabezpečeného serveru a sdílené databáze. Nevkládejte skutečné osobní údaje zákazníků. Pro rozpoznávání fotky a online dekódování je nutné připojení k internetu. NHTSA má omezené pokrytí evropských aut.</p>
+  </main>
+  <script>
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const fields = ['vin','make','model','year','fuel','engine','power','plate','km','mechanic','customer','phone','work','deadline'];
+  const storeKey='servispro_demo_v2';
+  let jobs = [];
+  try {const data=JSON.parse(localStorage.getItem(storeKey)||'[]');jobs=Array.isArray(data)?data:[]}catch(_){jobs=[]}
+  let vinPhotoData='', workImages=[],lastLookup='',recognitionBusy=false;
+  const VIN_PATTERN=/^[A-HJ-NPR-Z0-9]{17}$/;
+  function norm(s){return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,17)}
+  function validVin(s){return VIN_PATTERN.test(s)}
+  function status(element, message, type=''){element.textContent=message;element.className='status'+(type?' '+type:'')}
+  function setTab(tab){$('pageNew').classList.toggle('hidden',tab!=='new');$('pageJobs').classList.toggle('hidden',tab!=='jobs');$('navNew').classList.toggle('active',tab==='new');$('navJobs').classList.toggle('active',tab==='jobs');if(tab==='jobs')renderJobs();window.scrollTo({top:0,behavior:'smooth'});}
+  $('navNew').addEventListener('click',()=>setTab('new'));$('navJobs').addEventListener('click',()=>setTab('jobs'));
+  function fillCar(car){for(const k of ['make','model','year','fuel','engine','power','plate']){if(car[k])$(k).value=car[k]}}
+  function checkDuplicate(vin){const out=$('duplicate');out.classList.add('hidden');if(!validVin(vin))return null;const related=jobs.filter(j=>j.vin===vin);if(!related.length)return null;const open=related.find(j=>!['Předáno','Zrušeno'].includes(j.status));out.classList.remove('hidden');if(open){status(out,`⚠️ Toto VIN už má otevřenou zakázku #${open.id} (${open.status}, mechanik: ${open.mechanic}). Nezakládej druhou – otevři existující zakázku v přehledu.`, 'warn');}else{status(out,`ℹ️ Vozidlo už v servisu bylo (${related.length} dokončených zakázek). Dostupné údaje vozidla byly načteny z historie.`, 'good');}fillCar(related[0]);return {related,open}}
+  function onVinEdited(){let s=norm($('vin').value);$('vin').value=s;$('vinCount').textContent=s.length+'/17 znaků · '+(validVin(s)?'správný formát; ověř znaky podle štítku': 'VIN musí mít 17 znaků, nepoužívá I, O, Q');checkDuplicate(s);if(lastLookup!==s)$('decodeStatus').textContent='Pro doplnění technických údajů klepni na „Zkontrolovat VIN a doplnit auto“.'}
+  $('vin').addEventListener('input',onVinEdited);
+  function readImage(file,max=1600,quality=.88){return new Promise((resolve,reject)=>{const img=new Image();const tmp=URL.createObjectURL(file);img.onload=()=>{try{const ratio=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));const w=Math.max(1,Math.round(img.naturalWidth*ratio));const h=Math.max(1,Math.round(img.naturalHeight*ratio));const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(img,0,0,w,h);resolve(cv.toDataURL('image/jpeg',quality))}catch(e){reject(e)}finally{URL.revokeObjectURL(tmp)}};img.onerror=()=>{URL.revokeObjectURL(tmp);reject(new Error('Obrázek nelze otevřít.'))};img.src=tmp})}
+  async function lazyTesseract(){if(window.Tesseract)return;await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/tesseract.js@6/dist/tesseract.min.js';script.onload=resolve;script.onerror=()=>reject(new Error('Nepodařilo se načíst OCR knihovnu. Zkontroluj internet.'));document.head.appendChild(script)});if(!window.Tesseract)throw Error('OCR není dostupné.')}
+  function extractVin(raw){const lines=String(raw||'').toUpperCase().split(/\n/);const candidates=[];for(let line of lines){for(const word of line.match(/[A-Z0-9]+/g)||[]){const corrected=word.replace(/I/g,'1').replace(/[OQ]/g,'0');if(corrected.length===17&&validVin(corrected))candidates.push(corrected)}}const compact=lines.map(line=>line.replace(/[^A-Z0-9]/g,'').replace(/I/g,'1').replace(/[OQ]/g,'0'));for(const line of compact){for(let i=0;i<=line.length-17;i++){const v=line.slice(i,i+17);if(validVin(v))candidates.push(v)}}return candidates[0]||null}
+  $('vinPhoto').addEventListener('change',async e=>{const file=e.target.files&&e.target.files[0];if(!file||recognitionBusy)return;recognitionBusy=true;$('vinPhoto').disabled=true;try{status($('ocrStatus'),'Fotografie se připravuje…');vinPhotoData=await readImage(file);$('vinPreview').src=vinPhotoData;$('vinPreview').classList.remove('hidden');status($('ocrStatus'),'Načítám OCR, rozpoznávám znaky z fotografie…');await lazyTesseract();const worker=await Tesseract.createWorker('eng',1,{logger:()=>{}});let raw='';try{await worker.setParameters({tessedit_char_whitelist:'ABCDEFGHJKLMNPRSTUVWXYZ0123456789OIQ',tessedit_pageseg_mode:'6'});const result=await worker.recognize(vinPhotoData);raw=result.data.text||''}finally{await worker.terminate()};const recognized=extractVin(raw);if(recognized){$('vin').value=recognized;onVinEdited();status($('ocrStatus'),'✓ OCR našlo kandidáta VIN. Zkontroluj všech 17 znaků – automatické čtení může zaměnit například 0/6, 5/S a 8/B.','good');await decodeVin()}else{status($('ocrStatus'),'OCR nedokázalo spolehlivě najít 17 znaků VIN. Zkus detailnější fotku jednoho řádku, nebo VIN opiš ručně. Rozpoznaný text: '+(raw.trim().slice(0,110)||'(žádný)'),'warn')}}catch(err){status($('ocrStatus'),'Rozpoznávání selhalo: '+err.message+'. VIN můžeš vždy zadat ručně.','bad')}finally{recognitionBusy=false;$('vinPhoto').disabled=false;e.target.value=''}});
+  $('sampleVin').addEventListener('click',async()=>{$('vin').value='1HGCM82633A004352';onVinEdited();status($('ocrStatus'),'Testovací VIN vyplněno bez fotografie. Můžeš vyzkoušet automatické doplnění auta.','good');await decodeVin()});
+  function clean(v){const s=String(v||'').trim();return !s||/^(not applicable|not available|null|0)$/i.test(s)?'':s}
+  async function decodeVin(){const vin=norm($('vin').value);if(!validVin(vin)){status($('decodeStatus'),'VIN musí mít přesně 17 povolených znaků. Nejprve oprav VIN.','warn');return}const dupe=checkDuplicate(vin);if(dupe){lastLookup=vin;status($('decodeStatus'),'Údaje se načetly z místní servisní historie.','good');return}status($('decodeStatus'),'Vyhledávám údaje vozidla podle VIN v NHTSA (veřejná americká databáze)…');$('decode').disabled=true;try{const url='https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValuesExtended/'+encodeURIComponent(vin)+'?format=json';const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),16000);let res;try{res=await fetch(url,{signal:ctl.signal,headers:{Accept:'application/json'}})}finally{clearTimeout(timer)}if(!res.ok)throw Error('Služba odpověděla chybou '+res.status);const data=await res.json();const v=(data.Results||[])[0];if(!v)throw Error('Pro VIN nebyly vráceny žádné výsledky');const values={make:clean(v.Make),model:clean(v.Model),year:clean(v.ModelYear),fuel:clean(v.FuelTypePrimary),engine:clean(v.EngineModel)||[clean(v.DisplacementL)?clean(v.DisplacementL)+' l':'',clean(v.EngineCylinders)?clean(v.EngineCylinders)+' válce':''].filter(Boolean).join(' · '),power:clean(v.EngineKW)};let count=0;for(const [key,value]of Object.entries(values)){if(value){$(key).value=value;count++}}lastLookup=vin;if(count){status($('decodeStatus'),`✓ Automaticky doplněno ${count} údajů. Zdroj: NHTSA vPIC. Zkontroluj model, motor a palivo; neúplné údaje doplň ručně.`,'good')}else{status($('decodeStatus'),'VIN má správný formát, ale NHTSA k tomuto autu nevrátila použitelné údaje. U evropských aut je to běžné. Auto vyplň ručně nebo později použij evropské VIN API.','warn')}}catch(err){status($('decodeStatus'),'Automatické doplnění se nezdařilo ('+err.message+'). Můžeš pokračovat ručním vyplněním.','warn')}finally{$('decode').disabled=false}}
+  $('decode').addEventListener('click',decodeVin);
+  $('workPhotos').addEventListener('change',async e=>{const selected=Array.from(e.target.files||[]).slice(0,3-workImages.length);for(const f of selected){try{workImages.push(await readImage(f,740,.6))}catch(_){}}renderThumbs();e.target.value=''});
+  function renderThumbs(){const root=$('workThumbs');root.replaceChildren();workImages.forEach((data,index)=>{const div=document.createElement('div');div.style.position='relative';const img=document.createElement('img');img.src=data;img.alt='Fotografie závady '+(index+1);div.append(img);const btn=document.createElement('button');btn.type='button';btn.textContent='×';btn.title='Odebrat fotografii';btn.style.cssText='position:absolute;right:-5px;top:-5px;border:none;background:#1e293b;color:white;border-radius:50%;width:23px;height:23px';btn.addEventListener('click',()=>{workImages.splice(index,1);renderThumbs()});div.append(btn);root.append(div)})}
+  function persist(){try{localStorage.setItem(storeKey,JSON.stringify(jobs));return true}catch(err){alert('Nepodařilo se uložit do paměti prohlížeče. Pravděpodobně je plná. Odeber některé fotografie nebo staré testovací zakázky.');return false}}
+  function clearForm(){for(const id of fields){if(id==='mechanic')continue;$(id).value=''}workImages=[];vinPhotoData='';lastLookup='';$('vinPreview').classList.add('hidden');renderThumbs();$('duplicate').classList.add('hidden');status($('ocrStatus'),'Vyfoť další VIN nebo jej zadej ručně.');status($('decodeStatus'),'Po VIN můžeš znovu načíst údaje.');onVinEdited()}
+  function createJob(statusName){const vin=norm($('vin').value);if(vin&&!validVin(vin)){alert('VIN má chybný formát. Oprav jej nebo pole nech prázdné a doplň později.');return}if(vin){const dupe=checkDuplicate(vin);if(dupe&&dupe.open){alert('Auto už má otevřenou zakázku #'+dupe.open.id+'. Novou zakázku proto nevytvářím.');return}}if(!$('work').value.trim()){alert('Vyplň alespoň co se má na autě opravit.');$('work').focus();return}const values={};for(const id of fields)values[id]=$(id).value.trim();values.vin=vin;const entry={...values,id:Date.now(),status:statusName,createdAt:new Date().toISOString(),startedAt:statusName==='Rozpracováno'?new Date().toISOString():null,photos:workImages.slice(),vinPhoto:vinPhotoData};jobs.unshift(entry);if(!persist()){jobs.shift();return}clearForm();renderJobs();setTab('jobs')}
+  $('saveAccepted').addEventListener('click',()=>createJob('Přijato'));$('startWork').addEventListener('click',()=>createJob('Rozpracováno'));
+  function textDiv(text,cl=''){const div=document.createElement('div');div.textContent=text;if(cl)div.className=cl;return div}
+  function renderJobs(){const root=$('jobs');root.replaceChildren();$('jobCount').textContent=jobs.length;$('sumJobs').textContent=jobs.length+' celkem';if(!jobs.length){root.append(textDiv('Zatím nejsou žádné zakázky. Založ první přes „Nová zakázka“.','muted'));return}for(const j of jobs){const card=document.createElement('div');card.className='job';const heading=document.createElement('div');heading.className='jobtitle';const title=document.createElement('div');const h=document.createElement('h3');h.textContent=[j.make,j.model].filter(Boolean).join(' ')||'Vozidlo bez doplněného modelu';title.append(h,textDiv((j.plate||'Bez SPZ')+' · '+(j.vin||'VIN nezadáno'),'meta'));const badge=document.createElement('span');badge.className='chip '+(j.status==='Hotovo'||j.status==='Předáno'?'green':j.status==='Rozpracováno'?'blue':j.status.includes('Čeká')?'amber':'');badge.textContent=j.status;heading.append(title,badge);card.append(heading,textDiv('🔧 '+j.work,'meta'),textDiv('👤 '+j.mechanic+' · '+(j.customer||'Zákazník neuveden')+' · '+new Date(j.createdAt).toLocaleDateString('cs-CZ'),'meta'));if(j.photos?.length)card.append(textDiv('📷 Fotky závady: '+j.photos.length,'meta'));const actions=document.createElement('div');actions.className='controls';const select=document.createElement('select');for(const s of ['Přijato','Rozpracováno','Čeká na díly','Čeká na schválení','Hotovo','Předáno']){const opt=document.createElement('option');opt.textContent=s;opt.value=s;select.append(opt)}select.value=j.status;select.addEventListener('change',()=>{const prev=j.status;j.status=select.value;if(!j.startedAt&&j.status==='Rozpracováno')j.startedAt=new Date().toISOString();if(!persist()){j.status=prev;select.value=prev}else renderJobs()});const remove=document.createElement('button');remove.className='btn secondary';remove.type='button';remove.textContent='Smazat test';remove.addEventListener('click',()=>{if(confirm('Smazat tuto testovací zakázku?')){jobs=jobs.filter(x=>x.id!==j.id);persist();renderJobs()}});actions.append(select,remove);card.append(actions);root.append(card)}}renderJobs();
+  </script>
+</body>
+</html>
